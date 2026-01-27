@@ -1,0 +1,1472 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🚂 Train Tycoon - Simulador de Maquinista</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@700;900&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --coal-black: #1a1a1a;
+            --rust-orange: #ff6b35;
+            --steel-gray: #3d5a80;
+            --brass-gold: #ffb627;
+            --smoke-white: #f0f0f0;
+            --rail-silver: #98c1d9;
+        }
+
+        body {
+            font-family: 'Courier Prime', monospace;
+            background: linear-gradient(135deg, var(--coal-black) 0%, #2c2c2c 100%);
+            color: var(--smoke-white);
+            min-height: 100vh;
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(90deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px),
+                repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(255,255,255,0.02) 2px, rgba(255,255,255,0.02) 4px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            position: relative;
+            z-index: 2;
+        }
+
+        header {
+            text-align: center;
+            padding: 30px 20px;
+            background: linear-gradient(135deg, var(--steel-gray), var(--coal-black));
+            border: 3px solid var(--rust-orange);
+            border-radius: 10px;
+            box-shadow: 0 10px 40px rgba(255, 107, 53, 0.3), inset 0 0 20px rgba(0,0,0,0.5);
+            margin-bottom: 30px;
+            animation: slideDown 0.8s ease-out;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        h1 {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 3.5em;
+            font-weight: 900;
+            color: var(--brass-gold);
+            text-shadow: 
+                3px 3px 0 var(--rust-orange),
+                6px 6px 10px rgba(0,0,0,0.8);
+            letter-spacing: 3px;
+            margin-bottom: 10px;
+            animation: glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes glow {
+            from {
+                text-shadow: 
+                    3px 3px 0 var(--rust-orange),
+                    6px 6px 10px rgba(0,0,0,0.8),
+                    0 0 20px rgba(255, 182, 39, 0.3);
+            }
+            to {
+                text-shadow: 
+                    3px 3px 0 var(--rust-orange),
+                    6px 6px 10px rgba(0,0,0,0.8),
+                    0 0 40px rgba(255, 182, 39, 0.6);
+            }
+        }
+
+        .subtitle {
+            font-size: 1.2em;
+            color: var(--rail-silver);
+            letter-spacing: 2px;
+        }
+
+        .game-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .panel {
+            background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
+            border: 2px solid var(--steel-gray);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.5), inset 0 2px 4px rgba(255,255,255,0.1);
+            animation: fadeIn 1s ease-out backwards;
+        }
+
+        .panel:nth-child(1) { animation-delay: 0.2s; }
+        .panel:nth-child(2) { animation-delay: 0.4s; }
+        .panel:nth-child(3) { animation-delay: 0.6s; }
+        .panel:nth-child(4) { animation-delay: 0.8s; }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .panel h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--rust-orange);
+            font-size: 1.8em;
+            margin-bottom: 15px;
+            border-bottom: 2px solid var(--steel-gray);
+            padding-bottom: 10px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+            padding: 10px;
+            background: rgba(61, 90, 128, 0.2);
+            border-left: 4px solid var(--brass-gold);
+            transition: all 0.3s ease;
+        }
+
+        .stat:hover {
+            background: rgba(61, 90, 128, 0.4);
+            border-left-width: 8px;
+            transform: translateX(5px);
+        }
+
+        .stat-label {
+            font-weight: 700;
+            color: var(--rail-silver);
+            font-size: 1.1em;
+        }
+
+        .stat-value {
+            font-size: 1.3em;
+            color: var(--brass-gold);
+            font-weight: 700;
+            text-shadow: 0 0 10px rgba(255, 182, 39, 0.5);
+        }
+
+        .train-display {
+            text-align: center;
+            font-size: 5em;
+            margin: 20px 0;
+            animation: chugChug 2s ease-in-out infinite;
+        }
+
+        @keyframes chugChug {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+
+        .btn {
+            background: linear-gradient(145deg, var(--rust-orange), #d95424);
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            cursor: pointer;
+            border-radius: 5px;
+            margin: 5px;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.4);
+            letter-spacing: 1px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .btn::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            width: 0;
+            height: 0;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.3);
+            transform: translate(-50%, -50%);
+            transition: width 0.5s, height 0.5s;
+        }
+
+        .btn:hover::before {
+            width: 300px;
+            height: 300px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 25px rgba(255, 107, 53, 0.6);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+            box-shadow: 0 3px 10px rgba(255, 107, 53, 0.4);
+        }
+
+        .btn:disabled {
+            background: linear-gradient(145deg, #666, #444);
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .btn-secondary {
+            background: linear-gradient(145deg, var(--steel-gray), #2c4559);
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 8px 25px rgba(61, 90, 128, 0.6);
+        }
+
+        .button-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .upgrade-item {
+            background: rgba(255, 182, 39, 0.1);
+            border: 2px solid var(--brass-gold);
+            border-radius: 6px;
+            padding: 15px;
+            margin: 10px 0;
+            transition: all 0.3s ease;
+        }
+
+        .upgrade-item:hover {
+            background: rgba(255, 182, 39, 0.2);
+            transform: scale(1.02);
+            box-shadow: 0 5px 20px rgba(255, 182, 39, 0.3);
+        }
+
+        .upgrade-title {
+            font-size: 1.2em;
+            color: var(--brass-gold);
+            margin-bottom: 8px;
+            font-weight: 700;
+        }
+
+        .upgrade-cost {
+            color: var(--rail-silver);
+            font-size: 0.95em;
+        }
+
+        .progress-bar {
+            background: rgba(61, 90, 128, 0.3);
+            height: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            margin: 15px 0;
+            border: 2px solid var(--steel-gray);
+        }
+
+        .progress-fill {
+            background: linear-gradient(90deg, var(--brass-gold), var(--rust-orange));
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+            box-shadow: 0 0 20px rgba(255, 182, 39, 0.6);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .progress-fill::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            bottom: 0;
+            right: 0;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+            animation: shimmer 2s infinite;
+        }
+
+        @keyframes shimmer {
+            0% { transform: translateX(-100%); }
+            100% { transform: translateX(100%); }
+        }
+
+        .journey-log {
+            max-height: 200px;
+            overflow-y: auto;
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 5px;
+            border: 1px solid var(--steel-gray);
+        }
+
+        .journey-log::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        .journey-log::-webkit-scrollbar-track {
+            background: rgba(61, 90, 128, 0.2);
+            border-radius: 5px;
+        }
+
+        .journey-log::-webkit-scrollbar-thumb {
+            background: var(--rust-orange);
+            border-radius: 5px;
+        }
+
+        .log-entry {
+            padding: 8px;
+            margin: 5px 0;
+            border-left: 3px solid var(--brass-gold);
+            background: rgba(255, 182, 39, 0.05);
+            animation: logSlide 0.5s ease-out;
+        }
+
+        @keyframes logSlide {
+            from {
+                transform: translateX(-20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .achievement {
+            background: linear-gradient(145deg, var(--brass-gold), #d99f1c);
+            color: var(--coal-black);
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-weight: 700;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(255, 182, 39, 0.5);
+            animation: achievementPop 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+        }
+
+        @keyframes achievementPop {
+            0% {
+                transform: scale(0) rotate(-180deg);
+                opacity: 0;
+            }
+            50% {
+                transform: scale(1.1) rotate(10deg);
+            }
+            100% {
+                transform: scale(1) rotate(0);
+                opacity: 1;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .game-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            h1 {
+                font-size: 2.5em;
+            }
+            
+            .train-display {
+                font-size: 3em;
+            }
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: linear-gradient(145deg, var(--rust-orange), #d95424);
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(255, 107, 53, 0.6);
+            z-index: 1000;
+            animation: slideInRight 0.5s ease-out;
+            font-weight: 700;
+        }
+
+        @keyframes slideInRight {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        /* Estilos del minijuego de conducción */
+        .game-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            z-index: 2000;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        .game-overlay.active {
+            display: flex;
+        }
+
+        .driving-game {
+            width: 90%;
+            max-width: 900px;
+            background: linear-gradient(145deg, #2c2c2c, #1a1a1a);
+            border: 3px solid var(--rust-orange);
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 10px 50px rgba(255, 107, 53, 0.5);
+            position: relative;
+        }
+
+        .game-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid var(--steel-gray);
+        }
+
+        .game-title {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 1.8em;
+            color: var(--brass-gold);
+        }
+
+        .game-stats {
+            display: flex;
+            gap: 20px;
+        }
+
+        .game-stat {
+            text-align: center;
+        }
+
+        .game-stat-label {
+            font-size: 0.9em;
+            color: var(--rail-silver);
+        }
+
+        .game-stat-value {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: var(--brass-gold);
+        }
+
+        .track-container {
+            background: #1a2a1a;
+            border: 3px solid var(--steel-gray);
+            border-radius: 8px;
+            padding: 30px;
+            margin: 20px 0;
+            position: relative;
+            overflow: visible;
+        }
+
+        .circuit-track {
+            width: 100%;
+            height: 500px;
+            position: relative;
+            background: radial-gradient(circle at center, #2a3a2a 0%, #1a2a1a 100%);
+            border-radius: 8px;
+        }
+
+        /* Vías del circuito */
+        .track-outer {
+            position: absolute;
+            top: 50px;
+            left: 50px;
+            right: 50px;
+            bottom: 50px;
+            border: 4px solid var(--steel-gray);
+            border-radius: 30px;
+            box-shadow: 
+                inset 0 0 20px rgba(61, 90, 128, 0.3),
+                0 0 30px rgba(61, 90, 128, 0.2);
+        }
+
+        .track-inner {
+            position: absolute;
+            top: 80px;
+            left: 80px;
+            right: 80px;
+            bottom: 80px;
+            border: 3px dashed var(--steel-gray);
+            border-radius: 25px;
+            opacity: 0.4;
+        }
+
+        .track-markings {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                repeating-linear-gradient(
+                    90deg,
+                    transparent 0px,
+                    transparent 40px,
+                    rgba(152, 193, 217, 0.1) 40px,
+                    rgba(152, 193, 217, 0.1) 42px
+                ),
+                repeating-linear-gradient(
+                    0deg,
+                    transparent 0px,
+                    transparent 40px,
+                    rgba(152, 193, 217, 0.1) 40px,
+                    rgba(152, 193, 217, 0.1) 42px
+                );
+        }
+
+        .train-sprite {
+            position: absolute;
+            font-size: 2.5em;
+            transition: all 0.1s linear;
+            filter: drop-shadow(0 5px 15px rgba(255, 107, 53, 0.8));
+            z-index: 100;
+            transform-origin: center center;
+        }
+
+        .station {
+            position: absolute;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s ease;
+            z-index: 10;
+        }
+
+        .station-icon {
+            font-size: 2em;
+            filter: drop-shadow(0 0 10px rgba(152, 193, 217, 0.8));
+        }
+
+        .station-label {
+            font-size: 0.7em;
+            color: var(--rail-silver);
+            margin-top: 3px;
+            font-weight: 700;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 2px 6px;
+            border-radius: 3px;
+            white-space: nowrap;
+        }
+
+        .station.next {
+            animation: stationPulse 1s ease-in-out infinite;
+        }
+
+        @keyframes stationPulse {
+            0%, 100% { 
+                transform: scale(1);
+                filter: drop-shadow(0 0 10px rgba(255, 182, 39, 0.8));
+            }
+            50% { 
+                transform: scale(1.3);
+                filter: drop-shadow(0 0 20px rgba(255, 182, 39, 1));
+            }
+        }
+
+        .station.completed .station-icon {
+            opacity: 0.4;
+            filter: grayscale(100%) drop-shadow(0 0 5px rgba(152, 193, 217, 0.4));
+        }
+
+        .station.completed .station-label {
+            text-decoration: line-through;
+        }
+
+        .stop-zone {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            border: 3px dashed var(--brass-gold);
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255, 182, 39, 0.2) 0%, transparent 70%);
+            margin-left: -40px;
+            margin-top: -40px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .stop-zone.active {
+            opacity: 1;
+            animation: zoneGlow 1s ease-in-out infinite;
+        }
+
+        @keyframes zoneGlow {
+            0%, 100% { 
+                box-shadow: 0 0 20px rgba(255, 182, 39, 0.5);
+            }
+            50% { 
+                box-shadow: 0 0 40px rgba(255, 182, 39, 0.8);
+            }
+        }
+
+        .controls-info {
+            background: rgba(61, 90, 128, 0.2);
+            border: 2px solid var(--steel-gray);
+            border-radius: 5px;
+            padding: 15px;
+            margin: 15px 0;
+            text-align: center;
+        }
+
+        .controls-info p {
+            margin: 8px 0;
+            color: var(--rail-silver);
+        }
+
+        .control-key {
+            display: inline-block;
+            background: linear-gradient(145deg, var(--rust-orange), #d95424);
+            color: white;
+            padding: 5px 15px;
+            border-radius: 5px;
+            font-weight: 700;
+            margin: 0 5px;
+            font-family: 'Orbitron', sans-serif;
+            box-shadow: 0 3px 10px rgba(255, 107, 53, 0.4);
+        }
+
+        .speed-meter {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin: 15px 0;
+        }
+
+        .speed-bar-container {
+            flex: 1;
+            background: rgba(61, 90, 128, 0.3);
+            height: 30px;
+            border-radius: 15px;
+            overflow: hidden;
+            border: 2px solid var(--steel-gray);
+        }
+
+        .speed-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #4caf50, var(--brass-gold), var(--rust-orange));
+            width: 0%;
+            transition: width 0.2s ease;
+            box-shadow: 0 0 20px rgba(255, 182, 39, 0.6);
+        }
+
+        .speed-text {
+            font-size: 1.3em;
+            font-weight: 700;
+            color: var(--brass-gold);
+            min-width: 120px;
+            text-align: center;
+        }
+
+        .game-message {
+            text-align: center;
+            font-size: 1.2em;
+            color: var(--brass-gold);
+            margin: 15px 0;
+            min-height: 30px;
+            font-weight: 700;
+        }
+
+        .close-game-btn {
+            background: linear-gradient(145deg, var(--rust-orange), #d95424);
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: 2px solid var(--brass-gold);
+            color: white;
+            font-size: 1.5em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            z-index: 1000;
+            font-weight: 700;
+        }
+
+        .close-game-btn:hover {
+            background: linear-gradient(145deg, #d95424, var(--rust-orange));
+            transform: rotate(90deg) scale(1.1);
+            box-shadow: 0 0 20px rgba(255, 107, 53, 0.8);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🚂 TRAIN TYCOON</h1>
+            <p class="subtitle">SIMULADOR DE MAQUINISTA</p>
+        </header>
+
+        <div class="game-grid">
+            <!-- Panel de Recursos -->
+            <div class="panel">
+                <h2>💰 Recursos</h2>
+                <div class="stat">
+                    <span class="stat-label">Dinero:</span>
+                    <span class="stat-value" id="money">$0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Dinero/seg:</span>
+                    <span class="stat-value" id="moneyPerSecond">$0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Viajes Totales:</span>
+                    <span class="stat-value" id="totalTrips">0</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Pasajeros Transportados:</span>
+                    <span class="stat-value" id="totalPassengers">0</span>
+                </div>
+            </div>
+
+            <!-- Panel de Tren -->
+            <div class="panel">
+                <h2>🚂 Tu Tren</h2>
+                <div class="train-display">🚂</div>
+                <div class="stat">
+                    <span class="stat-label">Velocidad:</span>
+                    <span class="stat-value" id="speed">50 km/h</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Capacidad:</span>
+                    <span class="stat-value" id="capacity">100 pasajeros</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-label">Nivel:</span>
+                    <span class="stat-value" id="trainLevel">1</span>
+                </div>
+            </div>
+
+            <!-- Panel de Acciones -->
+            <div class="panel">
+                <h2>⚙️ Acciones</h2>
+                <div class="button-group">
+                    <button class="btn" id="driveBtn" onclick="startTrip()">
+                        🚂 CONDUCIR TREN
+                    </button>
+                    <button class="btn btn-secondary" onclick="autoTrip()">
+                        🤖 Auto-Piloto ($500)
+                    </button>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="tripProgress"></div>
+                </div>
+                <div id="tripStatus" style="text-align: center; margin-top: 10px; color: var(--rail-silver);">
+                    Listo para partir
+                </div>
+            </div>
+
+            <!-- Panel de Mejoras -->
+            <div class="panel">
+                <h2>⬆️ Mejoras</h2>
+                <div class="upgrade-item">
+                    <div class="upgrade-title">🚄 Mejorar Velocidad</div>
+                    <div class="upgrade-cost">Costo: $<span id="speedCost">100</span></div>
+                    <button class="btn btn-secondary" onclick="upgradeSpeed()">Comprar</button>
+                </div>
+                <div class="upgrade-item">
+                    <div class="upgrade-title">👥 Ampliar Capacidad</div>
+                    <div class="upgrade-cost">Costo: $<span id="capacityCost">150</span></div>
+                    <button class="btn btn-secondary" onclick="upgradeCapacity()">Comprar</button>
+                </div>
+                <div class="upgrade-item">
+                    <div class="upgrade-title">⭐ Mejorar Tren</div>
+                    <div class="upgrade-cost">Costo: $<span id="trainCost">500</span></div>
+                    <button class="btn btn-secondary" onclick="upgradeTrain()">Comprar</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Registro de Viajes -->
+        <div class="panel">
+            <h2>📜 Registro de Viajes</h2>
+            <div class="journey-log" id="journeyLog">
+                <div class="log-entry">¡Bienvenido a Train Tycoon! Comienza tu carrera como maquinista.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Overlay del minijuego de conducción -->
+    <div class="game-overlay" id="gameOverlay">
+        <div class="driving-game">
+            <button class="close-game-btn" onclick="closeDrivingGame()" title="Salir (X)">✕</button>
+            
+            <div class="game-header">
+                <div class="game-title">🚂 MODO CONDUCCIÓN</div>
+                <div class="game-stats">
+                    <div class="game-stat">
+                        <div class="game-stat-label">Paradas</div>
+                        <div class="game-stat-value" id="stopsCompleted">0/4</div>
+                    </div>
+                    <div class="game-stat">
+                        <div class="game-stat-label">Bonus</div>
+                        <div class="game-stat-value" id="bonusMoney">$0</div>
+                    </div>
+                    <div class="game-stat">
+                        <div class="game-stat-label">Vueltas</div>
+                        <div class="game-stat-value" id="lapsCount">0/1</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="controls-info">
+                <p>
+                    <span class="control-key">←</span> Izquierda |
+                    <span class="control-key">→</span> Derecha |
+                    <span class="control-key">ESPACIO</span> Frenar en estación |
+                    <span class="control-key">X</span> Salir
+                </p>
+                <p style="color: var(--brass-gold); margin-top: 10px;">
+                    ¡Para en las estaciones cuando estés en la zona dorada! Completa 1 vuelta al circuito.
+                </p>
+            </div>
+
+            <div class="track-container">
+                <div class="circuit-track" id="gameTrack">
+                    <div class="track-markings"></div>
+                    <div class="track-outer"></div>
+                    <div class="track-inner"></div>
+                    <div class="train-sprite" id="trainSprite">🚂</div>
+                </div>
+            </div>
+
+            <div class="speed-meter">
+                <span class="speed-text" id="speedDisplay">0 km/h</span>
+                <div class="speed-bar-container">
+                    <div class="speed-bar" id="speedBar"></div>
+                </div>
+            </div>
+
+            <div class="game-message" id="gameMessage">¡Usa las flechas para acelerar/frenar y ESPACIO en las estaciones!</div>
+        </div>
+    </div>
+
+    <script>
+        // Variables del juego
+        let gameState = {
+            money: 0,
+            moneyPerSecond: 0,
+            totalTrips: 0,
+            totalPassengers: 0,
+            speed: 50,
+            capacity: 100,
+            trainLevel: 1,
+            speedCost: 100,
+            capacityCost: 150,
+            trainCost: 500,
+            isOnTrip: false,
+            autoPilot: false,
+            autoPilotCost: 500,
+            stationBonus: 50
+        };
+
+        // Variables del minijuego con circuito cerrado
+        let drivingGame = {
+            active: false,
+            angle: 0, // Ángulo en el circuito (0-360 grados)
+            currentSpeed: 0,
+            targetSpeed: 0,
+            maxSpeed: 100,
+            stations: [],
+            stopsCompleted: 0,
+            totalStops: 4,
+            bonusEarned: 0,
+            gameInterval: null,
+            lapsCompleted: 0,
+            totalLaps: 1,
+            keys: {
+                left: false,
+                right: false,
+                space: false,
+                x: false
+            },
+            circuitRadius: 150, // Radio del circuito en píxeles
+            centerX: 0,
+            centerY: 0
+        };
+
+        // Actualizar visualización
+        function updateDisplay() {
+            document.getElementById('money').textContent = '$' + Math.floor(gameState.money);
+            document.getElementById('moneyPerSecond').textContent = '$' + gameState.moneyPerSecond.toFixed(1);
+            document.getElementById('totalTrips').textContent = gameState.totalTrips;
+            document.getElementById('totalPassengers').textContent = gameState.totalPassengers;
+            document.getElementById('speed').textContent = gameState.speed + ' km/h';
+            document.getElementById('capacity').textContent = gameState.capacity + ' pasajeros';
+            document.getElementById('trainLevel').textContent = gameState.trainLevel;
+            document.getElementById('speedCost').textContent = gameState.speedCost;
+            document.getElementById('capacityCost').textContent = gameState.capacityCost;
+            document.getElementById('trainCost').textContent = gameState.trainCost;
+        }
+
+        // Iniciar viaje (ahora abre el minijuego)
+        function startTrip() {
+            if (gameState.isOnTrip) return;
+            
+            gameState.isOnTrip = true;
+            openDrivingGame();
+        }
+
+        // Abrir minijuego de conducción con circuito
+        function openDrivingGame() {
+            drivingGame.active = true;
+            drivingGame.angle = 270; // Comenzar arriba
+            drivingGame.currentSpeed = 0;
+            drivingGame.targetSpeed = 0;
+            drivingGame.stopsCompleted = 0;
+            drivingGame.bonusEarned = 0;
+            drivingGame.lapsCompleted = 0;
+            
+            // Calcular centro del circuito
+            const track = document.getElementById('gameTrack');
+            const rect = track.getBoundingClientRect();
+            drivingGame.centerX = track.offsetWidth / 2;
+            drivingGame.centerY = track.offsetHeight / 2;
+            
+            // Crear estaciones en posiciones equilibradas alrededor del circuito
+            drivingGame.stations = [];
+            const baseAngles = [30, 110, 190, 290]; // Ángulos distribuidos equilibradamente
+            
+            for (let i = 0; i < drivingGame.totalStops; i++) {
+                // Añadir variación aleatoria de ±15 grados
+                const randomOffset = (Math.random() - 0.5) * 30;
+                const angle = baseAngles[i] + randomOffset;
+                
+                drivingGame.stations.push({
+                    angle: angle,
+                    completed: false,
+                    bonus: gameState.stationBonus * (i + 1) * gameState.trainLevel,
+                    stopZone: null
+                });
+            }
+            
+            renderStations();
+            
+            document.getElementById('gameOverlay').classList.add('active');
+            document.getElementById('gameMessage').textContent = '¡Acelera con → y frena con ←! Usa ESPACIO en las estaciones.';
+            document.getElementById('stopsCompleted').textContent = '0/' + drivingGame.totalStops;
+            document.getElementById('bonusMoney').textContent = '$0';
+            document.getElementById('lapsCount').textContent = '0/' + drivingGame.totalLaps;
+            
+            // Iniciar loop del juego
+            drivingGame.gameInterval = setInterval(updateDrivingGame, 30);
+        }
+
+        // Renderizar estaciones en el circuito
+        function renderStations() {
+            const track = document.getElementById('gameTrack');
+            
+            // Limpiar estaciones y zonas existentes
+            const oldElements = track.querySelectorAll('.station, .stop-zone');
+            oldElements.forEach(el => el.remove());
+            
+            // Crear nuevas estaciones
+            drivingGame.stations.forEach((station, index) => {
+                const angleRad = (station.angle * Math.PI) / 180;
+                const x = drivingGame.centerX + Math.cos(angleRad) * drivingGame.circuitRadius;
+                const y = drivingGame.centerY + Math.sin(angleRad) * drivingGame.circuitRadius;
+                
+                // Crear estación
+                const stationEl = document.createElement('div');
+                stationEl.className = 'station';
+                stationEl.style.left = x + 'px';
+                stationEl.style.top = y + 'px';
+                stationEl.style.transform = 'translate(-50%, -50%)';
+                stationEl.innerHTML = `
+                    <div class="station-icon">🏠</div>
+                    <div class="station-label">Est. ${index + 1}</div>
+                `;
+                stationEl.id = 'station-' + index;
+                track.appendChild(stationEl);
+                
+                // Crear zona de parada
+                const zoneEl = document.createElement('div');
+                zoneEl.className = 'stop-zone';
+                zoneEl.style.left = x + 'px';
+                zoneEl.style.top = y + 'px';
+                zoneEl.id = 'zone-' + index;
+                track.appendChild(zoneEl);
+                
+                station.stopZone = zoneEl;
+            });
+            
+            // Marcar la primera estación como siguiente
+            if (drivingGame.stations.length > 0) {
+                updateNextStation();
+            }
+        }
+
+        // Actualizar cuál es la siguiente estación
+        function updateNextStation() {
+            // Remover clase "next" de todas
+            document.querySelectorAll('.station').forEach(s => s.classList.remove('next'));
+            document.querySelectorAll('.stop-zone').forEach(z => z.classList.remove('active'));
+            
+            // Encontrar la siguiente estación no completada
+            const nextStation = drivingGame.stations.find(s => !s.completed);
+            if (nextStation) {
+                const index = drivingGame.stations.indexOf(nextStation);
+                document.getElementById('station-' + index).classList.add('next');
+                document.getElementById('zone-' + index).classList.add('active');
+            }
+        }
+
+        // Loop del minijuego
+        function updateDrivingGame() {
+            if (!drivingGame.active) return;
+            
+            // Actualizar velocidad según teclas
+            if (drivingGame.keys.right) {
+                drivingGame.targetSpeed = Math.min(drivingGame.maxSpeed, drivingGame.targetSpeed + 3);
+            }
+            if (drivingGame.keys.left) {
+                drivingGame.targetSpeed = Math.max(0, drivingGame.targetSpeed - 3);
+            }
+            
+            // Suavizar cambios de velocidad
+            drivingGame.currentSpeed += (drivingGame.targetSpeed - drivingGame.currentSpeed) * 0.1;
+            
+            // Mover tren por el circuito
+            drivingGame.angle += drivingGame.currentSpeed * 0.08;
+            
+            // Normalizar ángulo (0-360)
+            if (drivingGame.angle >= 360) {
+                drivingGame.angle -= 360;
+                
+                // Verificar si se completó la vuelta
+                if (drivingGame.stopsCompleted === drivingGame.totalStops) {
+                    drivingGame.lapsCompleted++;
+                    document.getElementById('lapsCount').textContent = drivingGame.lapsCompleted + '/' + drivingGame.totalLaps;
+                    
+                    if (drivingGame.lapsCompleted >= drivingGame.totalLaps) {
+                        completeDrivingGame();
+                        return;
+                    }
+                }
+            }
+            
+            // Calcular posición del tren
+            const angleRad = (drivingGame.angle * Math.PI) / 180;
+            const trainX = drivingGame.centerX + Math.cos(angleRad) * drivingGame.circuitRadius;
+            const trainY = drivingGame.centerY + Math.sin(angleRad) * drivingGame.circuitRadius;
+            
+            // Actualizar sprite del tren
+            const trainSprite = document.getElementById('trainSprite');
+            trainSprite.style.left = trainX + 'px';
+            trainSprite.style.top = trainY + 'px';
+            
+            // Rotar tren según dirección
+            const rotation = drivingGame.angle + 90; // +90 para que mire hacia adelante
+            trainSprite.style.transform = 'translate(-50%, -50%) rotate(' + rotation + 'deg)';
+            
+            // Actualizar velocímetro
+            const displaySpeed = Math.floor(drivingGame.currentSpeed * (gameState.speed / 100));
+            document.getElementById('speedDisplay').textContent = displaySpeed + ' km/h';
+            document.getElementById('speedBar').style.width = drivingGame.currentSpeed + '%';
+            
+            // Verificar paradas en estaciones
+            checkStationStop();
+        }
+
+        // Verificar si el tren está en una estación
+        function checkStationStop() {
+            drivingGame.stations.forEach((station, index) => {
+                if (station.completed) return;
+                
+                // Calcular diferencia angular
+                let angleDiff = Math.abs(drivingGame.angle - station.angle);
+                
+                // Normalizar la diferencia (considerar el círculo completo)
+                if (angleDiff > 180) {
+                    angleDiff = 360 - angleDiff;
+                }
+                
+                // Si está cerca de la estación (dentro de ~20 grados)
+                if (angleDiff < 20) {
+                    // Si presiona espacio y está frenando
+                    if (drivingGame.keys.space && drivingGame.currentSpeed < 30) {
+                        stopAtStation(index);
+                    } else if (drivingGame.keys.space && drivingGame.currentSpeed >= 30) {
+                        document.getElementById('gameMessage').textContent = '⚠️ ¡Demasiado rápido! Frena con ←';
+                        setTimeout(() => {
+                            if (drivingGame.active && !drivingGame.keys.space) {
+                                document.getElementById('gameMessage').textContent = 'Continúa hacia la siguiente estación';
+                            }
+                        }, 1500);
+                    }
+                }
+            });
+        }
+
+        // Parar en estación
+        function stopAtStation(index) {
+            const station = drivingGame.stations[index];
+            if (station.completed) return;
+            
+            station.completed = true;
+            drivingGame.stopsCompleted++;
+            drivingGame.bonusEarned += station.bonus;
+            
+            // Actualizar UI
+            document.getElementById('stopsCompleted').textContent = drivingGame.stopsCompleted + '/' + drivingGame.totalStops;
+            document.getElementById('bonusMoney').textContent = '$' + Math.floor(drivingGame.bonusEarned);
+            
+            const stationEl = document.getElementById('station-' + index);
+            stationEl.classList.remove('next');
+            stationEl.classList.add('completed');
+            
+            // Animación de éxito
+            stationEl.style.transform = 'translate(-50%, -50%) scale(1.5)';
+            setTimeout(() => {
+                stationEl.style.transform = 'translate(-50%, -50%) scale(1)';
+            }, 300);
+            
+            document.getElementById('gameMessage').textContent = '✅ ¡+$' + Math.floor(station.bonus) + ' ganados!';
+            
+            // Actualizar siguiente estación
+            updateNextStation();
+            
+            // Forzar detención momentánea
+            drivingGame.targetSpeed = 0;
+            drivingGame.currentSpeed = 0;
+            
+            setTimeout(() => {
+                if (drivingGame.active) {
+                    if (drivingGame.stopsCompleted === drivingGame.totalStops) {
+                        document.getElementById('gameMessage').textContent = '🎯 ¡Todas las paradas! Completa la vuelta';
+                    } else {
+                        document.getElementById('gameMessage').textContent = 'Continúa hacia la siguiente estación';
+                    }
+                }
+            }, 1500);
+        }
+
+        // Completar minijuego
+        function completeDrivingGame() {
+            drivingGame.active = false;
+            clearInterval(drivingGame.gameInterval);
+            
+            // Calcular ganancias
+            const passengers = gameState.capacity;
+            const baseEarnings = passengers * (1 + gameState.trainLevel * 0.5);
+            const totalEarnings = baseEarnings + drivingGame.bonusEarned;
+            
+            gameState.money += totalEarnings;
+            gameState.totalTrips++;
+            gameState.totalPassengers += passengers;
+            
+            let message = `✅ Viaje completado: +${passengers} pasajeros, +$${Math.floor(baseEarnings)}`;
+            if (drivingGame.bonusEarned > 0) {
+                message += ` + Bonus $${Math.floor(drivingGame.bonusEarned)} (${drivingGame.stopsCompleted} paradas)`;
+            }
+            
+            addLogEntry(message);
+            
+            if (drivingGame.stopsCompleted === drivingGame.totalStops) {
+                showNotification('🏆 ¡Perfecto! Todas las paradas completadas');
+                addLogEntry('🏆 ¡Viaje perfecto! Todas las estaciones visitadas');
+            }
+            
+            document.getElementById('tripProgress').style.width = '0%';
+            document.getElementById('tripStatus').textContent = 'Listo para partir';
+            document.getElementById('driveBtn').disabled = false;
+            gameState.isOnTrip = false;
+            
+            updateDisplay();
+            checkAchievements();
+            
+            // Cerrar overlay después de mostrar resultado
+            setTimeout(() => {
+                closeDrivingGame();
+            }, 3000);
+        }
+
+        // Cerrar minijuego
+        function closeDrivingGame() {
+            if (drivingGame.active) {
+                completeDrivingGame();
+            }
+            document.getElementById('gameOverlay').classList.remove('active');
+        }
+
+        // Control de teclado
+        document.addEventListener('keydown', (e) => {
+            if (!drivingGame.active) return;
+            
+            if (e.key === 'ArrowLeft') {
+                drivingGame.keys.left = true;
+                e.preventDefault();
+            }
+            if (e.key === 'ArrowRight') {
+                drivingGame.keys.right = true;
+                e.preventDefault();
+            }
+            if (e.key === ' ') {
+                drivingGame.keys.space = true;
+                e.preventDefault();
+            }
+            if (e.key.toLowerCase() === 'x') {
+                closeDrivingGame();
+                e.preventDefault();
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (!drivingGame.active) return;
+            
+            if (e.key === 'ArrowLeft') {
+                drivingGame.keys.left = false;
+            }
+            if (e.key === 'ArrowRight') {
+                drivingGame.keys.right = false;
+            }
+            if (e.key === ' ') {
+                drivingGame.keys.space = false;
+            }
+        });
+
+        // Activar auto-piloto
+        function autoTrip() {
+            if (gameState.money >= gameState.autoPilotCost && !gameState.autoPilot) {
+                gameState.money -= gameState.autoPilotCost;
+                gameState.autoPilot = true;
+                gameState.moneyPerSecond = (gameState.capacity * (1 + gameState.trainLevel * 0.5)) / 5;
+                
+                showNotification('🤖 ¡Auto-piloto activado!');
+                addLogEntry('🤖 Auto-piloto activado - Los viajes serán automáticos (sin minijuego)');
+                updateDisplay();
+                
+                if (!gameState.isOnTrip) {
+                    startAutoTrip();
+                }
+            } else if (gameState.autoPilot) {
+                showNotification('ℹ️ Auto-piloto ya está activo');
+            } else {
+                showNotification('❌ Dinero insuficiente');
+            }
+        }
+
+        // Viaje automático (sin minijuego)
+        function startAutoTrip() {
+            if (!gameState.autoPilot || gameState.isOnTrip) return;
+            
+            gameState.isOnTrip = true;
+            document.getElementById('driveBtn').disabled = true;
+            document.getElementById('tripStatus').textContent = '🤖 Auto-piloto en ruta...';
+            
+            const tripDuration = 5000 - (gameState.speed * 10);
+            const progressBar = document.getElementById('tripProgress');
+            
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += 2;
+                progressBar.style.width = progress + '%';
+                
+                if (progress >= 100) {
+                    clearInterval(interval);
+                    completeAutoTrip();
+                }
+            }, tripDuration / 50);
+        }
+
+        // Completar viaje automático
+        function completeAutoTrip() {
+            const passengers = gameState.capacity;
+            const earnings = passengers * (1 + gameState.trainLevel * 0.5);
+            
+            gameState.money += earnings;
+            gameState.totalTrips++;
+            gameState.totalPassengers += passengers;
+            
+            addLogEntry(`🤖 Auto-viaje completado: +${passengers} pasajeros, +$${Math.floor(earnings)}`);
+            
+            document.getElementById('tripProgress').style.width = '0%';
+            document.getElementById('tripStatus').textContent = 'Listo para partir';
+            document.getElementById('driveBtn').disabled = false;
+            gameState.isOnTrip = false;
+            
+            updateDisplay();
+            checkAchievements();
+            
+            // Continuar con auto-piloto
+            if (gameState.autoPilot) {
+                setTimeout(startAutoTrip, 1000);
+            }
+        }
+
+        // Mejorar velocidad
+        function upgradeSpeed() {
+            if (gameState.money >= gameState.speedCost) {
+                gameState.money -= gameState.speedCost;
+                gameState.speed += 10;
+                gameState.speedCost = Math.floor(gameState.speedCost * 1.5);
+                
+                addLogEntry(`🚄 Velocidad mejorada a ${gameState.speed} km/h`);
+                showNotification('🚄 ¡Velocidad mejorada!');
+                updateDisplay();
+            } else {
+                showNotification('❌ Dinero insuficiente');
+            }
+        }
+
+        // Mejorar capacidad
+        function upgradeCapacity() {
+            if (gameState.money >= gameState.capacityCost) {
+                gameState.money -= gameState.capacityCost;
+                gameState.capacity += 50;
+                gameState.capacityCost = Math.floor(gameState.capacityCost * 1.5);
+                
+                if (gameState.autoPilot) {
+                    gameState.moneyPerSecond = (gameState.capacity * (1 + gameState.trainLevel * 0.5)) / 5;
+                }
+                
+                addLogEntry(`👥 Capacidad aumentada a ${gameState.capacity} pasajeros`);
+                showNotification('👥 ¡Capacidad aumentada!');
+                updateDisplay();
+            } else {
+                showNotification('❌ Dinero insuficiente');
+            }
+        }
+
+        // Mejorar tren
+        function upgradeTrain() {
+            if (gameState.money >= gameState.trainCost) {
+                gameState.money -= gameState.trainCost;
+                gameState.trainLevel++;
+                gameState.trainCost = Math.floor(gameState.trainCost * 2);
+                gameState.stationBonus = 50 * gameState.trainLevel;
+                
+                if (gameState.autoPilot) {
+                    gameState.moneyPerSecond = (gameState.capacity * (1 + gameState.trainLevel * 0.5)) / 5;
+                }
+                
+                addLogEntry(`⭐ Tren mejorado al nivel ${gameState.trainLevel} - Bonus por parada aumentado`);
+                showNotification(`⭐ ¡Tren nivel ${gameState.trainLevel}!`);
+                updateDisplay();
+            } else {
+                showNotification('❌ Dinero insuficiente');
+            }
+        }
+
+        // Agregar entrada al registro
+        function addLogEntry(text) {
+            const log = document.getElementById('journeyLog');
+            const entry = document.createElement('div');
+            entry.className = 'log-entry';
+            entry.textContent = text;
+            log.insertBefore(entry, log.firstChild);
+            
+            if (log.children.length > 20) {
+                log.removeChild(log.lastChild);
+            }
+        }
+
+        // Mostrar notificación
+        function showNotification(text) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = text;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.style.animation = 'slideInRight 0.5s ease-out reverse';
+                setTimeout(() => notification.remove(), 500);
+            }, 2500);
+        }
+
+        // Verificar logros
+        function checkAchievements() {
+            if (gameState.totalTrips === 10) {
+                showNotification('🏆 ¡Logro: 10 viajes completados!');
+            }
+            if (gameState.totalTrips === 50) {
+                showNotification('🏆 ¡Logro: 50 viajes completados!');
+            }
+            if (gameState.totalTrips === 100) {
+                showNotification('🏆 ¡Logro: ¡Maquinista Experto!');
+            }
+            if (gameState.totalPassengers >= 1000) {
+                showNotification('🏆 ¡Logro: 1000 pasajeros transportados!');
+            }
+            if (gameState.trainLevel === 5) {
+                showNotification('🏆 ¡Logro: Tren de Alta Tecnología!');
+            }
+        }
+
+        // Auto-guardado
+        setInterval(() => {
+            localStorage.setItem('trainTycoonSave', JSON.stringify(gameState));
+        }, 10000);
+
+        // Cargar juego
+        function loadGame() {
+            const saved = localStorage.getItem('trainTycoonSave');
+            if (saved) {
+                gameState = JSON.parse(saved);
+                updateDisplay();
+                addLogEntry('💾 Juego cargado');
+                
+                if (gameState.autoPilot && !gameState.isOnTrip) {
+                    startAutoTrip();
+                }
+            }
+        }
+
+        // Inicializar
+        loadGame();
+        updateDisplay();
+    </script>
+</body>
+</html>
